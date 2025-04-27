@@ -1,0 +1,10 @@
+"C:\Program Files\JetBrains\CLion 2023.1.2\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=C:/Program Files/JetBrains/CLion 2023.1.2/bin/ninja/win/x64/ninja.exe" -G Ninja -S "C:\Users\anaho\OneDrive - Technical University of Cluj-Napoca\Documents\PI\Proiect\RedEyeDetection" -B "C:\Users\anaho\OneDrive - Technical University of Cluj-Napoca\Documents\PI\Proiect\RedEyeDetection\cmake-build-debug"
+-- OpenCV ARCH: x64
+-- OpenCV RUNTIME: vc16
+-- OpenCV STATIC: OFF
+-- Found OpenCV: C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/opencv/build (found version "4.11.0") 
+-- Found OpenCV 4.11.0 in C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/opencv/build/x64/vc16/lib
+-- You might need to add C:\Users\anaho\OneDrive - Technical University of Cluj-Napoca\Documents\PI\opencv\build\x64\vc16\bin to your PATH to be able to run your applications.
+-- Configuring done
+-- Generating done
+-- Build files have been written to: C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/Proiect/RedEyeDetection/cmake-build-debug

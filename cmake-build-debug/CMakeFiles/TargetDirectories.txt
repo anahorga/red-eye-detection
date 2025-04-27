@@ -1,0 +1,3 @@
+C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/Proiect/RedEyeDetection/cmake-build-debug/CMakeFiles/RedEyeDetection.dir
+C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/Proiect/RedEyeDetection/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/Proiect/RedEyeDetection/cmake-build-debug/CMakeFiles/rebuild_cache.dir
