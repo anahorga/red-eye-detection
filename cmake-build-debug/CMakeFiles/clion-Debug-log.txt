@@ -2,7 +2,6 @@
 -- OpenCV ARCH: x64
 -- OpenCV RUNTIME: vc16
 -- OpenCV STATIC: OFF
--- Found OpenCV: C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/opencv/build (found version "4.11.0") 
 -- Found OpenCV 4.11.0 in C:/Users/anaho/OneDrive - Technical University of Cluj-Napoca/Documents/PI/opencv/build/x64/vc16/lib
 -- You might need to add C:\Users\anaho\OneDrive - Technical University of Cluj-Napoca\Documents\PI\opencv\build\x64\vc16\bin to your PATH to be able to run your applications.
 -- Configuring done
