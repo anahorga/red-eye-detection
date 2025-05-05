@@ -99,7 +99,7 @@ Mat dilation(const Mat& source,int widthStr,int heightStr ,int no_iter) {
                             if (kernel.at<uchar>(ki, kj) > 0) {
                                 int ni = i + ki - kCenter;
                                 int nj = j + kj - kCenter;
-                                if (ni >= 0 && ni < dst.rows && nj >= 0 && nj < dst.cols) {
+                                if (IsInside(dst,ni,nj)) {
                                     dst.at<uchar>(ni, nj) = 255;
                                 }
                             }
@@ -420,14 +420,43 @@ vector<Rect> detectEyes(const Mat& img, const Rect& faceRect) {
         return {};
     return {best.first, best.second};
 }
+image_channels_bgr break_channels(Mat source){
+
+    int rows, cols;
+    Mat B, G, R;
+    image_channels_bgr bgr_channels;
+
+    rows=source.rows;
+    cols=source.cols;
+
+    B=Mat(rows,cols,CV_8UC1);
+    G=Mat(rows,cols,CV_8UC1);
+    R=Mat(rows,cols,CV_8UC1);
+    for(int i=0;i<rows;i++)
+        for(int j=0;j<cols;j++)
+        {
+            B.at<uchar>(i,j)=source.at<Vec3b>(i,j)[0];
+
+            G.at<uchar>(i,j)=source.at<Vec3b>(i,j)[1];
+
+            R.at<uchar>(i,j)=source.at<Vec3b>(i,j)[2];
+
+
+        }
+
+    bgr_channels.B=B;
+    bgr_channels.G=G;
+    bgr_channels.R=R;
+    return bgr_channels;
+}
+
 
 Mat createRedEyeMask(const Mat& eye) {
-    vector<Mat> bgr(3);
-    split(eye, bgr);
+    image_channels_bgr bgr=break_channels(eye);
 
     // Heuristica: rosu > 150 si rosu > verde + albastru
     // se poate adapta in functie de poza
-    Mat mask = (bgr[2] > 150) & (bgr[2] > (bgr[1] + bgr[0]));
+    Mat mask = (bgr.R > 150) & (bgr.R > (bgr.G + bgr.B));
 
     // Convertim la uint8 (0 sau 255)
     mask.convertTo(mask, CV_8U, 255);
@@ -448,7 +477,7 @@ void correctRedEye(Mat& eye, const Mat& mask) {
     vector<Mat> bgr(3);
     split(eye, bgr);
 
-    // Media canalelor verde și albastru
+    // Media canalelor verde si albastru
     Mat mean = (bgr[0] + bgr[1]) / 2;
 
     // Suprascriem toate cele 3 canale cu media
@@ -463,14 +492,13 @@ void fixRedEyes(Mat& img, const vector<Rect>& eyes) {
     for (const Rect& eyeRect : eyes) {
         Mat eye = img(eyeRect);
 
-        // Pasul 1: Creează mască
+        //  1: Creeaza masca
         Mat mask = createRedEyeMask(eye);
 
-        // Pasul 2: Curăță masca (umple găuri, dilatează)
+        //  2: Curata masca (umple gauri, dilateaza)
         fillHoles(mask);
         dilate(mask, mask, Mat(), Point(-1, -1), 3);
-
-        // Pasul 3: Corectează ochiul
+        //  3: Corecteaza ochiul
         correctRedEye(eye, mask);
     }
 }
