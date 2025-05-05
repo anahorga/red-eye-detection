@@ -9,7 +9,11 @@
 using namespace std;
 using namespace cv;
 
-
+typedef struct {
+    Mat B;
+    Mat G;
+    Mat R;
+} image_channels_bgr;
 Rect findFaceRegion(const Mat& skinMask);
 vector<Rect> findEyeCandidates(const Mat& mask, const Rect& faceRect);
 Mat detectSkin(const Mat& src);
