@@ -11,7 +11,7 @@ using namespace cv;
 
 
 Rect findFaceRegion(const Mat& skinMask);
-
+vector<Rect> findEyeCandidates(const Mat& mask, const Rect& faceRect);
 Mat detectSkin(const Mat& src);
 vector<Rect> detectEyes(const Mat& img, const Rect& faceRect);
 
@@ -21,5 +21,5 @@ void fixRedEyes(Mat& img, const vector<Rect>& eyes);
 void correctRedEye(Mat& eye, const Mat& mask);
 
 void fillHoles(Mat& mask);
-
+void drawEyeCandidates(Mat& image, const vector<Rect>& candidates, const string& windowName = "Eye Candidates");
 #endif //REDEYEDETECTION_EYE_H

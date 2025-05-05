@@ -10,16 +10,17 @@ int main() {
 
 
     //Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\redeyes1.jpg",
-           //       IMREAD_COLOR);
+                  //IMREAD_COLOR);
 
-    Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\img5.png",
-                     IMREAD_COLOR);
+    Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\img5.jpg",
+                    IMREAD_COLOR);
 
     imshow("Original Image", source);
 
 
     Mat skinMask = detectSkin(source);
     Rect face = findFaceRegion(skinMask);
+
 
     Mat eyesRect=source.clone();
     vector<Rect> eyes = detectEyes(source, face);
