@@ -10,16 +10,190 @@
 using namespace std;
 using namespace cv;
 
+Mat bgr_2_YCrCb(Mat source) {
+    int rows = source.rows, cols = source.cols;
+    Mat dest(rows, cols, CV_8UC3); // output: YCrCb
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            Vec3b pixel = source.at<Vec3b>(i, j);
+            uchar B = pixel[0];
+            uchar G = pixel[1];
+            uchar R = pixel[2];
+
+            //formule de conversie
+            float fY  = 0.299f * R + 0.587f * G + 0.114f * B;
+            float fCr = (R - fY) * 0.713f + 128;
+            float fCb = (B - fY) * 0.564f + 128;
+
+            uchar Y, Cr, Cb;
+
+            if (fY < 0) Y = 0;
+            else if (fY > 255) Y = 255;
+            else Y = (uchar)fY;
+
+            if (fCr < 0) Cr = 0;
+            else if (fCr > 255) Cr = 255;
+            else Cr = (uchar)fCr;
+
+            if (fCb < 0) Cb = 0;
+            else if (fCb > 255) Cb = 255;
+            else Cb = (uchar)fCb;
+
+            dest.at<Vec3b>(i, j) = Vec3b(Y, Cr, Cb);  // OpenCV: YCrCb order
+        }
+    }
+
+    return dest;
+}
+Mat manualInRange(const Mat& ycrcb) {
+    int rows = ycrcb.rows;
+    int cols = ycrcb.cols;
+    Mat mask(rows, cols, CV_8UC1);
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            Vec3b pixel = ycrcb.at<Vec3b>(i, j);
+            uchar Y  = pixel[0];
+            uchar Cr = pixel[1];
+            uchar Cb = pixel[2];
+
+            // Interval tipic pentru piele
+            if (Y >= 0 && Y <= 255 &&
+                Cr >= 133 && Cr <= 173 &&
+                Cb >= 77 && Cb <= 127) {
+                mask.at<uchar>(i, j) = 255;
+            } else {
+                mask.at<uchar>(i, j) = 0;
+            }
+        }
+    }
+
+    return mask;
+}
+bool IsInside(Mat img, int i, int j){
+    /*
+    * Implement a function called isInside(img, i, j) which checks if the position indicated by
+    * the pair (i,j) (row, column) is inside the image img.
+    */
+
+    //*****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    if(i>=img.rows||i<0||j<0||j>=img.cols)
+        return false;
+
+    //*****END OF YOUR CODE(DO NOT DELETE / MODIFY THIS LINE) *****
+    return true;
+}
+Mat dilation(const Mat& source,int widthStr,int heightStr ,int no_iter) {
+    Mat dst = source.clone();
+    Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(widthStr, heightStr));
+    int kCenter = kernel.rows / 2;
+
+    for (int iter = 0; iter < no_iter; ++iter) {
+        Mat aux = dst.clone();
+        for (int i = 0; i < source.rows; ++i) {
+            for (int j = 0; j < source.cols; ++j) {
+                if (aux.at<uchar>(i, j) == 255) {
+                    for (int ki = 0; ki < kernel.rows; ++ki) {
+                        for (int kj = 0; kj < kernel.cols; ++kj) {
+                            if (kernel.at<uchar>(ki, kj) > 0) {
+                                int ni = i + ki - kCenter;
+                                int nj = j + kj - kCenter;
+                                if (ni >= 0 && ni < dst.rows && nj >= 0 && nj < dst.cols) {
+                                    dst.at<uchar>(ni, nj) = 255;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return dst;
+}
+
+Mat erosion(const Mat& source,int widthStr,int heightStr, int no_iter) {
+    Mat dst = source.clone();
+    Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(widthStr, heightStr));
+    int kCenter = kernel.rows / 2;
+
+    for (int iter = 0; iter < no_iter; ++iter) {
+        Mat aux = dst.clone();
+        for (int i = 0; i < source.rows; ++i) {
+            for (int j = 0; j < source.cols; ++j) {
+                bool erodePixel = false;
+                for (int ki = 0; ki < kernel.rows && !erodePixel; ++ki) {
+                    for (int kj = 0; kj < kernel.cols; ++kj) {
+                        if (kernel.at<uchar>(ki, kj) > 0) {
+                            int ni = i + ki - kCenter;
+                            int nj = j + kj - kCenter;
+                            if (ni < 0 || ni >= dst.rows || nj < 0 || nj >= dst.cols || aux.at<uchar>(ni, nj) == 0) {
+                                erodePixel = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                dst.at<uchar>(i, j) = erodePixel ? 0 : 255;
+            }
+        }
+    }
+
+    return dst;
+}
+
+
+
+Mat opening(Mat source,int widthStr,int heightStr ,int no_iter) {
+
+
+    Mat dst=source.clone(), aux=source.clone();
+    int rows=source.rows, cols=source.cols;
+
+
+    for(int k=0;k<no_iter;k++)
+    {
+        dst = erosion(aux,widthStr,heightStr,1);
+        dst = dilation(dst,widthStr,heightStr,1);
+        aux = dst.clone();
+    }
+
+
+    return dst;
+
+}
+
+Mat closing(Mat source,int widthStr,int heightStr ,int no_iter) {
+
+
+    Mat dst=source.clone(), aux=source.clone();
+    int rows=source.rows, cols=source.cols;
+
+    for(int k=0;k<no_iter;k++)
+    {
+        dst = dilation(aux,widthStr,heightStr,1);
+        dst = erosion(dst,widthStr,heightStr,1);
+        aux = dst.clone();
+    }
+
+    return dst;
+}
 Mat detectSkin(const Mat& src) {
     Mat ycrcb, mask;
-    cvtColor(src, ycrcb, COLOR_BGR2YCrCb);
+    //cvtColor(src, ycrcb, COLOR_BGR2YCrCb); - functie open cv rescrisa de mine
+    ycrcb=bgr_2_YCrCb(src);
 
     // Interval tipic pentru piele
-    inRange(ycrcb, Scalar(0, 133, 77), Scalar(255, 173, 127), mask);
+    //inRange(ycrcb, Scalar(0, 133, 77), Scalar(255, 173, 127), mask); - functie openCV rescrisa de mine
 
+    mask=manualInRange(ycrcb);
     // Curatare cu morfologie (dilatare urmata de eroziune)
-    morphologyEx(mask, mask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-    morphologyEx(mask, mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+    //morphologyEx(mask, mask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+    //morphologyEx(mask, mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+    mask=opening(mask,5,5,1);
+    mask=closing(mask,5,5,1);
 
     return mask;
 }
@@ -41,14 +215,113 @@ Rect findFaceRegion(const Mat& skinMask) {
     }
     return faceRect;
 }
+Mat bgr_2_grayscale(Mat source){
+    int rows=source.rows, cols=source.cols;
+    Mat grayscale_image=Mat(rows,cols,CV_8UC1);
+
+    for(int i=0;i<rows;i++)
+        for(int j=0;j<cols;j++)
+        {
+            grayscale_image.at<uchar>(i,j)=(source.at<Vec3b>(i,j)[0]+source.at<Vec3b>(i,j)[1]+source.at<Vec3b>(i,j)[2])/3;
+        }
+
+    return grayscale_image;
+}
+int otsuThreshold(const int* hist, int total) {
+    float sum = 0;
+    for (int i = 0; i < 256; ++i)
+        sum += i * hist[i];
+
+    float sumB = 0;
+    int wB = 0, wF = 0;
+
+    float maxBetweenVar = 0;
+    int threshold = 0;
+
+    for (int t = 0; t < 256; ++t) {
+        wB += hist[t]; // weight background
+        if (wB == 0) continue;
+
+        wF = total - wB; // weight foreground
+        if (wF == 0) break;
+
+        sumB += (float)(t * hist[t]);
+
+        float mB = sumB / wB;           // mean background
+        float mF = (sum - sumB) / wF;   // mean foreground
+
+        float betweenVar = (float)wB * wF * (mB - mF) * (mB - mF);
+
+        if (betweenVar > maxBetweenVar) {
+            maxBetweenVar = betweenVar;
+            threshold = t;
+        }
+    }
+
+    return threshold;
+}
+int* compute_histogram_naive(Mat source){
+
+    int* histogram = (int*)calloc(256, sizeof(int));
+
+    int rows=source.rows,cols=source.cols;
+
+    for(int i=0;i<rows;i++)
+        for(int j=0;j<cols;j++)
+        {
+            histogram[source.at<uchar>(i,j)]++;
+        }
+
+    return histogram;
+
+}
+Mat manualGaussianBlur(const Mat& src) {
+    Mat dst = src.clone();
+
+    // Kernel 5x5 gaussian aproximativ (sigma = 1.0)
+    float kernel[5][5] = {
+            { 1,  4,  6,  4, 1 },
+            { 4, 16, 24, 16, 4 },
+            { 6, 24, 36, 24, 6 },
+            { 4, 16, 24, 16, 4 },
+            { 1,  4,  6,  4, 1 }
+    };
+
+    float factor = 1.0f / 256.0f; // suma kernelului este 256
+
+    for (int i = 2; i < src.rows - 2; ++i) {
+        for (int j = 2; j < src.cols - 2; ++j) {
+            float sum = 0.0f;
+            for (int ki = -2; ki <= 2; ++ki) {
+                for (int kj = -2; kj <= 2; ++kj) {
+                    sum += kernel[ki + 2][kj + 2] * src.at<uchar>(i + ki, j + kj);
+                }
+            }
+            dst.at<uchar>(i, j) = (uchar)(sum * factor);
+        }
+    }
+
+    return dst;
+}
 
 Mat preprocessROI(const Mat& roi) {
     Mat gray, thresh;
-    cvtColor(roi, gray, COLOR_BGR2GRAY);
-    GaussianBlur(gray, gray, Size(5, 5), 0);
-    threshold(gray, thresh, 0, 255, THRESH_BINARY_INV + THRESH_OTSU);
-    morphologyEx(thresh, thresh, MORPH_OPEN,
-                 getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
+    gray=bgr_2_grayscale(roi);
+    //GaussianBlur(gray, gray, Size(5, 5), 0);
+    //threshold(gray, thresh, 0, 255, THRESH_BINARY_INV + THRESH_OTSU);
+    gray=manualGaussianBlur(gray);
+    int *histogram= compute_histogram_naive(gray);
+    int threshold=otsuThreshold(histogram,gray.rows*gray.cols);
+    thresh=gray.clone();
+    for(int i=0;i<gray.rows;i++)
+        for(int j=0;j<gray.cols;j++)
+            if(gray.at<uchar>(i,j)>threshold)
+                thresh.at<uchar>(i,j)=0;
+            else
+                thresh.at<uchar>(i,j)=255;
+    //morphologyEx(thresh, thresh, MORPH_OPEN,getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
+    thresh=opening(thresh,3,3,1);
+
     imshow("Masca fata",thresh);
     return thresh;
 
