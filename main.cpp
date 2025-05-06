@@ -10,9 +10,9 @@ int main() {
 
 
     //Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\redeyes1.jpg",
-                  //IMREAD_COLOR);
+              //   IMREAD_COLOR);
 
-    Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\img4.jpg",
+    Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\img5.jpg",
                     IMREAD_COLOR);
 
     imshow("Original Image", source);
