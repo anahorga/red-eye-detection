@@ -1,7 +1,3 @@
-//
-// Created by anaho on 5/4/2025.
-//
-
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <cmath>
@@ -72,16 +68,10 @@ Mat manualInRange(const Mat& ycrcb) {
     return mask;
 }
 bool IsInside(Mat img, int i, int j){
-    /*
-    * Implement a function called isInside(img, i, j) which checks if the position indicated by
-    * the pair (i,j) (row, column) is inside the image img.
-    */
 
-    //*****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     if(i>=img.rows||i<0||j<0||j>=img.cols)
         return false;
 
-    //*****END OF YOUR CODE(DO NOT DELETE / MODIFY THIS LINE) *****
     return true;
 }
 Mat dilation(const Mat& source,int widthStr,int heightStr ,int no_iter) {
@@ -200,14 +190,20 @@ Mat detectSkin(const Mat& src) {
 
 Rect findFaceRegion(const Mat& skinMask) {
     vector<vector<Point>> contours;
+
+    //doar contururile exterioare si salvam punctele importante (de ex la o linie drepta salvam doar marginile)
     findContours(skinMask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
     int maxArea = 0;
     Rect faceRect;
 
     for (const auto& contour : contours) {
+
+        //dreptunghiul circumscris
         Rect r = boundingRect(contour);
         int area = r.area();
+
+        //presupunem ca cea mai mare suprafata de piele este fata
         if (area > maxArea) {
             maxArea = area;
             faceRect = r;
@@ -335,19 +331,22 @@ vector<Rect> findEyeCandidates(const Mat& mask, const Rect& faceRect) {
 
     for (const auto& contour : contours) {
         Rect r = boundingRect(contour);
+
+        //ajuta la aflarea unai forme rotunde
         float aspect = (float)r.width / r.height;
 
         int centerYCand = r.y + r.height / 2;
         int centerYFace = faceRect.y + faceRect.height / 2;
 
-        // adăugăm filtru de poziție verticală (doar sus)
+        //  filtru de pozitie verticala (doar sus)
         if (centerYCand > centerYFace + faceRect.height / 6)
             continue;
 
         //modifica niste parametrii
-        if (r.width > 10 && r.width < 80 &&
+        if (r.width > 10 && r.width < 80 && //ignora forme foarte mici sau foarte mari
             r.height > 10 && r.height < 60 &&
-            aspect > 0.7 && aspect < 3.0) {
+            aspect > 0.7 && aspect < 3.0) //exclude forme ciudate
+        {
             Rect eyeBox(r.x + faceRect.x, r.y + faceRect.y, r.width, r.height);
             candidates.push_back(eyeBox);
         }
@@ -371,21 +370,29 @@ pair<Rect, Rect> findBestEyePair(const vector<Rect>& candidates, int faceCenterX
     int bestScore = INT_MAX;
     pair<Rect, Rect> bestPair;
 
+    //ponderi pentru scorul final
     int w_align = 3;
     int w_size = 2;
     int w_sym = 1; // mai mica pondere
 
+    //luam toate perechile de candidati pentru ochi
     for (size_t i = 0; i < candidates.size(); ++i) {
         for (size_t j = i + 1; j < candidates.size(); ++j) {
             Rect a = candidates[i], b = candidates[j];
 
+            //aliniere orizonatala a ochilor
             int centerYDiff = abs((a.y + a.height / 2) - (b.y + b.height / 2));
+
+            //ochii sa fie aproximativ egali ca marime
             int sizeDiff = abs(a.width - b.width) + abs(a.height - b.height);
+
+            //ochii sunt pozitionati aproximativ simetric fata de centrul fetei
             int symA = abs((a.x + a.width / 2) - faceCenterX);
             int symB = abs((b.x + b.width / 2) - faceCenterX);
             int symDiff = abs(symA - symB);
-            int distX = abs((a.x + a.width / 2) - (b.x + b.width / 2));
 
+            //distanta dintre ochi sa fie rezonabila
+            int distX = abs((a.x + a.width / 2) - (b.x + b.width / 2));
             if (distX < 20 || distX > faceCenterX)  // elimina doar cazuri extreme
                 continue;
 
@@ -413,7 +420,7 @@ vector<Rect> detectEyes(const Mat& img, const Rect& faceRect) {
 
     pair<Rect, Rect> best = findBestEyePair(candidates, faceRect.x + faceRect.width / 2);
 
-    // Validam dacă sunt destul de aliniati si simetrici
+    // Validare (finala) daca sunt destul de aliniati si departati
     int deltaY = abs((best.first.y + best.first.height / 2) - (best.second.y + best.second.height / 2));
     int distX = abs((best.first.x + best.first.width / 2) - (best.second.x + best.second.width / 2));
     if (deltaY > faceRect.height / 5 || distX < 20 || distX > faceRect.width * 0.9)
@@ -454,12 +461,24 @@ image_channels_bgr break_channels(Mat source){
 Mat createRedEyeMask(const Mat& eye) {
     image_channels_bgr bgr=break_channels(eye);
 
-    // Heuristica: rosu > 150 si rosu > verde + albastru
-    // se poate adapta in functie de poza
-    Mat mask = (bgr.R > 150) & (bgr.R > (bgr.G + bgr.B));
+    Mat mask(bgr.R.rows, bgr.R.cols, CV_8UC1);
 
-    // Convertim la uint8 (0 sau 255)
-    mask.convertTo(mask, CV_8U, 255);
+    for (int i = 0; i < bgr.R.rows; ++i) {
+        for (int j = 0; j < bgr.R.cols; ++j) {
+            uchar r = bgr.R.at<uchar>(i, j);
+            uchar g = bgr.G.at<uchar>(i, j);
+            uchar b = bgr.B.at<uchar>(i, j);
+
+            // Heuristica: pixelul este considerat rosu daca:
+            // rosul e mare (>150)
+            // rosul este mai mare decat suma celorlalte doua canale
+            if (r > 150 && r > (g + b)) {
+                mask.at<uchar>(i, j) = 255;  // pixel marcat ca "ochi rosu"
+            } else {
+                mask.at<uchar>(i, j) = 0;    // pixel normal
+            }
+        }
+    }
 
     return mask;
 }
