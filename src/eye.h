@@ -14,16 +14,16 @@ typedef struct {
     Mat G;
     Mat R;
 } image_channels_bgr;
-Rect findFaceRegion(const Mat& skinMask);
-vector<Rect> findEyeCandidates(const Mat& mask, const Rect& faceRect);
-Mat detectSkin(const Mat& src);
-vector<Rect> detectEyes(const Mat& img, const Rect& faceRect);
+Rect findFaceRegion( Mat skinMask);
+vector<Rect> findEyeCandidates( Mat mask,  Rect faceRect);
+Mat detectSkin( Mat src);
+vector<Rect> detectEyes( Mat img,  Rect faceRect);
 
-Mat createRedEyeMask(const Mat& eye);
+Mat createRedEyeMask( Mat eye);
 
-void fixRedEyes(Mat& img, const vector<Rect>& eyes);
-void correctRedEye(Mat& eye, const Mat& mask);
+void fixRedEyes(Mat img, vector<Rect> eyes);
+void correctRedEye(Mat eye, Mat mask);
 
-void fillHoles(Mat& mask);
-void drawEyeCandidates(Mat& image, const vector<Rect>& candidates, const string& windowName = "Eye Candidates");
+void fillHoles(Mat mask);
+void drawEyeCandidates(Mat image,  vector<Rect> candidates,  string windowName = "Eye Candidates");
 #endif //REDEYEDETECTION_EYE_H

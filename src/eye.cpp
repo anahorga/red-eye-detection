@@ -42,7 +42,7 @@ Mat bgr_2_YCrCb(Mat source) {
 
     return dest;
 }
-Mat manualInRange(const Mat& ycrcb) {
+Mat manualInRange( Mat ycrcb) {
     int rows = ycrcb.rows;
     int cols = ycrcb.cols;
     Mat mask(rows, cols, CV_8UC1);
@@ -74,7 +74,7 @@ bool IsInside(Mat img, int i, int j){
 
     return true;
 }
-Mat dilation(const Mat& source,int widthStr,int heightStr ,int no_iter) {
+Mat dilation( Mat source,int widthStr,int heightStr ,int no_iter) {
     Mat dst = source.clone();
     Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(widthStr, heightStr));
     int kCenter = kernel.rows / 2;
@@ -103,7 +103,7 @@ Mat dilation(const Mat& source,int widthStr,int heightStr ,int no_iter) {
     return dst;
 }
 
-Mat erosion(const Mat& source,int widthStr,int heightStr, int no_iter) {
+Mat erosion( Mat source,int widthStr,int heightStr, int no_iter) {
     Mat dst = source.clone();
     Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(widthStr, heightStr));
     int kCenter = kernel.rows / 2;
@@ -169,7 +169,7 @@ Mat closing(Mat source,int widthStr,int heightStr ,int no_iter) {
 
     return dst;
 }
-Mat detectSkin(const Mat& src) {
+Mat detectSkin( Mat src) {
     Mat ycrcb, mask;
     //cvtColor(src, ycrcb, COLOR_BGR2YCrCb); - functie open cv rescrisa de mine
     ycrcb=bgr_2_YCrCb(src);
@@ -188,7 +188,7 @@ Mat detectSkin(const Mat& src) {
     return mask;
 }
 
-Rect findFaceRegion(const Mat& skinMask) {
+Rect findFaceRegion(Mat skinMask) {
     vector<vector<Point>> contours;
 
     //doar contururile exterioare si salvam punctele importante (de ex la o linie drepta salvam doar marginile)
@@ -223,7 +223,7 @@ Mat bgr_2_grayscale(Mat source){
 
     return grayscale_image;
 }
-int otsuThreshold(const int* hist, int total) {
+int otsuThreshold(int* hist, int total) {
     float sum = 0;
     for (int i = 0; i < 256; ++i)
         sum += i * hist[i];
@@ -271,7 +271,7 @@ int* compute_histogram_naive(Mat source){
     return histogram;
 
 }
-Mat manualGaussianBlur(const Mat& src) {
+Mat manualGaussianBlur( Mat src) {
     Mat dst = src.clone();
 
     // Kernel 5x5 gaussian aproximativ (sigma = 1.0)
@@ -300,7 +300,7 @@ Mat manualGaussianBlur(const Mat& src) {
     return dst;
 }
 
-Mat preprocessROI(const Mat& roi) {
+Mat preprocessROI( Mat roi) {
     Mat gray, thresh;
     gray=bgr_2_grayscale(roi);
     //GaussianBlur(gray, gray, Size(5, 5), 0);
@@ -323,13 +323,13 @@ Mat preprocessROI(const Mat& roi) {
 
 }
 
-vector<Rect> findEyeCandidates(const Mat& mask, const Rect& faceRect) {
+vector<Rect> findEyeCandidates( Mat mask,  Rect faceRect) {
     vector<vector<Point>> contours;
     findContours(mask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
     vector<Rect> candidates;
 
-    for (const auto& contour : contours) {
+    for (const auto contour : contours) {
         Rect r = boundingRect(contour);
 
         //ajuta la aflarea unai forme rotunde
@@ -354,9 +354,9 @@ vector<Rect> findEyeCandidates(const Mat& mask, const Rect& faceRect) {
 
     return candidates;
 }
-void drawEyeCandidates(Mat& image, const vector<Rect>& candidates, const string& windowName ) {
+void drawEyeCandidates(Mat image,  vector<Rect> candidates,  string windowName ) {
     for (size_t i = 0; i < candidates.size(); ++i) {
-        const Rect& r = candidates[i];
+        const Rect r = candidates[i];
         rectangle(image, r, Scalar(0, 255, 255), 2);
         putText(image, to_string(i), Point(r.x, r.y - 5),
                 FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0), 1);
@@ -366,7 +366,7 @@ void drawEyeCandidates(Mat& image, const vector<Rect>& candidates, const string&
 
 }
 
-pair<Rect, Rect> findBestEyePair(const vector<Rect>& candidates, int faceCenterX) {
+pair<Rect, Rect> findBestEyePair( vector<Rect> candidates, int faceCenterX) {
     int bestScore = INT_MAX;
     pair<Rect, Rect> bestPair;
 
@@ -409,7 +409,7 @@ pair<Rect, Rect> findBestEyePair(const vector<Rect>& candidates, int faceCenterX
 }
 
 
-vector<Rect> detectEyes(const Mat& img, const Rect& faceRect) {
+vector<Rect> detectEyes( Mat img,  Rect faceRect) {
     Mat roi = img(faceRect).clone();
     Mat mask = preprocessROI(roi);
     vector<Rect> candidates = findEyeCandidates(mask, faceRect);
@@ -458,7 +458,7 @@ image_channels_bgr break_channels(Mat source){
 }
 
 
-Mat createRedEyeMask(const Mat& eye) {
+Mat createRedEyeMask( Mat eye) {
     image_channels_bgr bgr=break_channels(eye);
 
     Mat mask(bgr.R.rows, bgr.R.cols, CV_8UC1);
@@ -483,7 +483,7 @@ Mat createRedEyeMask(const Mat& eye) {
     return mask;
 }
 
-void fillHoles(Mat& mask) {
+void fillHoles(Mat mask) {
     Mat mask_floodfill = mask.clone();
     floodFill(mask_floodfill, Point(0, 0), Scalar(255));
 
@@ -492,7 +492,7 @@ void fillHoles(Mat& mask) {
 
     mask = mask | mask_inv;
 }
-void correctRedEye(Mat& eye, const Mat& mask) {
+void correctRedEye(Mat eye,  Mat mask) {
     vector<Mat> bgr(3);
     split(eye, bgr);
 
@@ -507,17 +507,17 @@ void correctRedEye(Mat& eye, const Mat& mask) {
     // Reconstruim imaginea ochiului
     merge(bgr, eye);
 }
-void fixRedEyes(Mat& img, const vector<Rect>& eyes) {
-    for (const Rect& eyeRect : eyes) {
+void fixRedEyes(Mat img,  vector<Rect> eyes) {
+    for (const Rect eyeRect : eyes) {
         Mat eye = img(eyeRect);
 
-        //  1: Creeaza masca
+        //   Creeaza masca
         Mat mask = createRedEyeMask(eye);
 
-        //  2: Curata masca (umple gauri, dilateaza)
+        //   Curata masca (umple gauri, dilateaza)
         fillHoles(mask);
         dilate(mask, mask, Mat(), Point(-1, -1), 3);
-        //  3: Corecteaza ochiul
+        //   Corecteaza ochiul
         correctRedEye(eye, mask);
     }
 }
