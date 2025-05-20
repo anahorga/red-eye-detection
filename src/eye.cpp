@@ -42,6 +42,57 @@ Mat bgr_2_YCrCb(Mat source) {
 
     return dest;
 }
+
+Mat eye_detection_haar_cascade(Mat source, vector<Rect>& haarCascadeEyes)
+{
+    CascadeClassifier face_cascade("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\haarcascade_frontalface_default.xml");
+    CascadeClassifier eye_cascade("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\haarcascade_eye.xml");
+
+        Mat source_test = source.clone();
+        Mat gray;
+        cvtColor(source_test, gray, COLOR_BGR2GRAY);
+        equalizeHist(gray, gray);
+        GaussianBlur(gray, gray, Size(3, 3), 0); // reduce zgomotul
+
+        vector<Rect> faces;
+        face_cascade.detectMultiScale(gray, faces, 1.1, 4, 0, Size(80, 80));
+
+        for (const Rect& face : faces) {
+            Mat faceROI = gray(face);
+            vector<Rect> eyes;
+            eye_cascade.detectMultiScale(faceROI, eyes, 1.1, 3, 0, Size(15, 15));
+
+            vector<Rect> validEyes;
+
+            for (const Rect& eye : eyes) {
+                int eyeCenterY = eye.y + eye.height / 2;
+                if (eyeCenterY > face.height / 2) continue; // ignoră detecții sub mijlocul feței
+
+                float aspect = (float)eye.width / eye.height;
+                if (aspect < 0.5 || aspect > 2.5) continue; // ignoră forme ciudate
+
+                validEyes.push_back(eye);
+            }
+
+            sort(validEyes.begin(), validEyes.end(), [](const Rect& a, const Rect& b) {
+                return a.x < b.x; // sortare pe axa X: stânga → dreapta
+            });
+
+            if (validEyes.size() > 2)
+                validEyes.resize(2); // doar primii 2 (cei mai probabili ochi)
+
+            for (const Rect& eye : validEyes) {
+                Rect eye_global(face.x + eye.x, face.y + eye.y, eye.width, eye.height);
+                rectangle(source_test, eye_global, Scalar(0, 255, 0), 2);
+                haarCascadeEyes.push_back(eye_global);
+            }
+        }
+
+        return source_test;
+
+
+}
+
 Mat manualInRange( Mat ycrcb) {
     int rows = ycrcb.rows;
     int cols = ycrcb.cols;
@@ -182,7 +233,7 @@ Mat detectSkin( Mat src) {
 
     //morphologyEx(mask, mask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
     //morphologyEx(mask, mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-    mask=opening(mask,5,5,1);
+    //mask=opening(mask,5,5,1);
     mask=closing(mask,5,5,1);
 
     return mask;
@@ -318,7 +369,7 @@ Mat preprocessROI( Mat roi) {
     //morphologyEx(thresh, thresh, MORPH_OPEN,getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
     thresh=opening(thresh,3,3,1);
 
-    imshow("Masca fata",thresh);
+   // imshow("Masca fata",thresh);
     return thresh;
 
 }
@@ -414,7 +465,7 @@ vector<Rect> detectEyes( Mat img,  Rect faceRect) {
     Mat mask = preprocessROI(roi);
     vector<Rect> candidates = findEyeCandidates(mask, faceRect);
     Mat cand = img.clone();
-    drawEyeCandidates(cand,candidates);
+    //drawEyeCandidates(cand,candidates);
     if (candidates.size() < 2)
         return {};
 
@@ -425,7 +476,10 @@ vector<Rect> detectEyes( Mat img,  Rect faceRect) {
     int distX = abs((best.first.x + best.first.width / 2) - (best.second.x + best.second.width / 2));
     if (deltaY > faceRect.height / 5 || distX < 20 || distX > faceRect.width * 0.9)
         return {};
-    return {best.first, best.second};
+    if (best.first.x < best.second.x)
+        return {best.first, best.second};
+    else
+        return {best.second, best.first};
 }
 image_channels_bgr break_channels(Mat source){
 
@@ -521,7 +575,64 @@ void fixRedEyes(Mat img,  vector<Rect> eyes) {
         correctRedEye(eye, mask);
     }
 }
+double computeIoU(Rect rectA, Rect rectB) {
+    Rect intersection = rectA & rectB;
+    double interArea = intersection.area();
+    double unionArea = rectA.area() + rectB.area() - interArea;
+    if (unionArea <= 0) return 0.0;
+    return interArea / unionArea;
+}
+double verifyPositionDifference(vector<Rect>selectedEyes,vector<Rect>myEyes)
+{
+    if (selectedEyes.size() != 2 || myEyes.size() != 2) {
+        cerr << " Nu sunt exact 2 ochi in fiecare vector" << endl;
+        return 0.0;
+    }
+    double iou1 = computeIoU(selectedEyes[0], myEyes[0]);
+    double iou2 = computeIoU(selectedEyes[1], myEyes[1]);
+    double avgIoU = (iou1 + iou2) / 2.0;
 
+    cout << "IoU ochi 1: " << iou1 << endl;
+    cout << "IoU ochi 2: " << iou2 << endl;
+    cout << "Media IoU: " << avgIoU << endl;
+
+    return avgIoU;
+}
+void verifyColorDifference( Mat iphoneCorrect,  Mat myCorrect,  vector<Rect> eyes) {
+    if (eyes.empty()) {
+        cout << " Vectorul de ochi este gol" << endl;
+        return;
+    }
+
+    double totalDiff = 0.0;
+    int totalPixels = 0;
+
+    for ( Rect eye : eyes) {
+        Rect validEye = eye & Rect(0, 0, iphoneCorrect.cols, iphoneCorrect.rows); // clamp
+        for (int y = validEye.y; y < validEye.y + validEye.height; ++y) {
+            for (int x = validEye.x; x < validEye.x + validEye.width; ++x) {
+                Vec3b pixIphone = iphoneCorrect.at<Vec3b>(y, x);
+                Vec3b pixMine   = myCorrect.at<Vec3b>(y, x);
+
+                // diferenta absoluta pe fiecare canal
+                int db = abs(pixIphone[0] - pixMine[0]);
+                int dg = abs(pixIphone[1] - pixMine[1]);
+                int dr = abs(pixIphone[2] - pixMine[2]);
+
+                totalDiff += (db + dg + dr) / 3.0;
+                totalPixels++;
+            }
+        }
+    }
+
+    if (totalPixels == 0) {
+        cout << " Nu s au gasit pixeli valizi in dreptunghiurile ochilor" << endl;
+        return;
+    }
+
+    double avgDiff = totalDiff / totalPixels;
+    cout << "Diferenta medie de culoare pe pixel in zona ochilor: " << avgDiff << " (din 255)" << endl;
+}
 
 
 
