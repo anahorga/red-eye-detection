@@ -14,6 +14,7 @@ typedef struct {
     Mat G;
     Mat R;
 } image_channels_bgr;
+Mat eye_detection_haar_cascade(Mat source,vector<Rect> & haarCascadeEyes);
 Rect findFaceRegion( Mat skinMask);
 vector<Rect> findEyeCandidates( Mat mask,  Rect faceRect);
 Mat detectSkin( Mat src);
@@ -26,4 +27,6 @@ void correctRedEye(Mat eye, Mat mask);
 
 void fillHoles(Mat mask);
 void drawEyeCandidates(Mat image,  vector<Rect> candidates,  string windowName = "Eye Candidates");
+double verifyPositionDifference(vector<Rect>selectedEyes,vector<Rect>myEyes);
+void verifyColorDifference(Mat iphoneCorrect ,Mat myCorrect,vector<Rect>eyes);
 #endif //REDEYEDETECTION_EYE_H
