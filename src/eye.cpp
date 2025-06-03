@@ -369,10 +369,12 @@ Mat preprocessROI( Mat roi) {
     //morphologyEx(thresh, thresh, MORPH_OPEN,getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
     thresh=opening(thresh,3,3,1);
 
-   // imshow("Masca fata",thresh);
+   //imshow("Masca fata",thresh);
     return thresh;
 
 }
+
+
 
 vector<Rect> findEyeCandidates( Mat mask,  Rect faceRect) {
     vector<vector<Point>> contours;
@@ -465,7 +467,7 @@ vector<Rect> detectEyes( Mat img,  Rect faceRect) {
     Mat mask = preprocessROI(roi);
     vector<Rect> candidates = findEyeCandidates(mask, faceRect);
     Mat cand = img.clone();
-    //drawEyeCandidates(cand,candidates);
+   // drawEyeCandidates(cand,candidates);
     if (candidates.size() < 2)
         return {};
 
@@ -511,31 +513,92 @@ image_channels_bgr break_channels(Mat source){
     return bgr_channels;
 }
 
+//varianta mea initiala fara prag adaptiv, doar conditii simple
+//Mat createRedEyeMask( Mat eye) {
+//    image_channels_bgr bgr=break_channels(eye);
+//
+//    Mat mask(bgr.R.rows, bgr.R.cols, CV_8UC1);
+//
+//    for (int i = 0; i < bgr.R.rows; ++i) {
+//        for (int j = 0; j < bgr.R.cols; ++j) {
+//            uchar r = bgr.R.at<uchar>(i, j);
+//            uchar g = bgr.G.at<uchar>(i, j);
+//            uchar b = bgr.B.at<uchar>(i, j);
+//
+//            // Heuristica: pixelul este considerat rosu daca:
+//            // rosul e mare (>150)
+//            // rosul este mai mare decat suma celorlalte doua canale
+//            if (r > 150 && r > (g + b)) {
+//                mask.at<uchar>(i, j) = 255;  // pixel marcat ca "ochi rosu"
+//            } else {
+//                mask.at<uchar>(i, j) = 0;    // pixel normal
+//            }
+//        }
+//    }
+//
+//    return mask;
+//}
 
-Mat createRedEyeMask( Mat eye) {
-    image_channels_bgr bgr=break_channels(eye);
 
-    Mat mask(bgr.R.rows, bgr.R.cols, CV_8UC1);
+Mat createRedEyeMask(Mat eye) {
+    Mat ycrcb;
+    cvtColor(eye, ycrcb, COLOR_BGR2YCrCb);
+    vector<Mat> channels;
+    split(ycrcb, channels); // Y, Cr, Cb
+    Mat Cr = channels[1];
 
-    for (int i = 0; i < bgr.R.rows; ++i) {
-        for (int j = 0; j < bgr.R.cols; ++j) {
+    Scalar crMean, crStd;
+    meanStdDev(Cr, crMean, crStd);
+    double crThreshold = crMean[0] + crStd[0] * 0.8;  // mai permisiv
+
+    image_channels_bgr bgr = break_channels(eye);
+    Mat mask = Mat::zeros(eye.size(), CV_8UC1);
+
+    for (int i = 0; i < eye.rows; ++i) {
+        for (int j = 0; j < eye.cols; ++j) {
             uchar r = bgr.R.at<uchar>(i, j);
             uchar g = bgr.G.at<uchar>(i, j);
             uchar b = bgr.B.at<uchar>(i, j);
+            uchar cr = Cr.at<uchar>(i, j);
 
-            // Heuristica: pixelul este considerat rosu daca:
-            // rosul e mare (>150)
-            // rosul este mai mare decat suma celorlalte doua canale
-            if (r > 150 && r > (g + b)) {
-                mask.at<uchar>(i, j) = 255;  // pixel marcat ca "ochi rosu"
-            } else {
-                mask.at<uchar>(i, j) = 0;    // pixel normal
-            }
+            float ratio = r / (float)(g + b + 1);
+
+            bool isRed = r > 75 && ratio > 1.2 && cr > crThreshold;
+
+            if (isRed)
+                mask.at<uchar>(i, j) = 255;
         }
     }
 
+    // Elipsa doar pentru centrul ochiului
+    Mat ellipseMask = Mat::zeros(mask.size(), CV_8UC1);
+    ellipse(ellipseMask, Point(eye.cols/2, eye.rows/2), Size(eye.cols/3, eye.rows/3), 0, 0, 360, Scalar(255), FILLED);
+    bitwise_and(mask, ellipseMask, mask);
+
+    morphologyEx(mask, mask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
+    morphologyEx(mask, mask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+    vector<vector<Point>> contours;
+    findContours(mask.clone(), contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+    mask.setTo(0);
+    for (const auto& c : contours) {
+        double area = contourArea(c);
+        if (area > 4 && area < 400) {
+            drawContours(mask, vector<vector<Point>>{c}, -1, Scalar(255), FILLED);
+        }
+    }
+
+    // Elipsa centrata pentru aspect mai natural
+    Moments m = moments(mask, true);
+    if (m.m00 > 0) {
+        int cx = int(m.m10 / m.m00);
+        int cy = int(m.m01 / m.m00);
+        ellipse(mask, Point(cx, cy), Size(eye.cols / 7, eye.rows / 7), 0, 0, 360, Scalar(255), FILLED);
+    }
+   // imshow("Maskk", mask);
     return mask;
 }
+
 
 void fillHoles(Mat mask) {
     Mat mask_floodfill = mask.clone();
@@ -575,6 +638,10 @@ void fixRedEyes(Mat img,  vector<Rect> eyes) {
         correctRedEye(eye, mask);
     }
 }
+
+
+
+
 double computeIoU(Rect rectA, Rect rectB) {
     Rect intersection = rectA & rectB;
     double interArea = intersection.area();
