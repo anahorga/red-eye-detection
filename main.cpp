@@ -36,35 +36,35 @@ void onMouse(int event, int x, int y, int, void*) {
 int main() {
 
 
-    //Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\redeyes1.jpg",
+   // Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\redeyes1.jpg",
           //       IMREAD_COLOR);
 
-    Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\img1.png",
-                   IMREAD_COLOR);
+    Mat source = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\img5.jpg",
+                  IMREAD_COLOR);
+
 
 
 
     imshow("Original Image", source);
 
-
     //ochide selectati de mana
-    image=source.clone();
-    tempImage = image.clone();
-    namedWindow("Selecteaza ochii");
-    setMouseCallback("Selecteaza ochii", onMouse);
+   // image=source.clone();
+    //tempImage = image.clone();
+   // namedWindow("Selecteaza ochii");
+   // setMouseCallback("Selecteaza ochii", onMouse);
 
-    imshow("Selecteaza ochii", image);
-    cout << "Selecteaza manual 2 ochi. Apasa orice tasta cand ai terminat.\n";
+    //imshow("Selecteaza ochii", image);
+   // cout << "Selecteaza manual 2 ochi. Apasa orice tasta cand ai terminat.\n";
 
-    waitKey(0); // dupa selectare
+    //waitKey(0); // dupa selectare
 
     //imshow("Ochi Selectati manual",image);
 
 
 
      //ochi selectati folosind haar cascade
-    Mat source_test=eye_detection_haar_cascade(source,haarCascadeEyes);
-    imshow("ochi detectati cu haar cascade",source_test);
+    //Mat source_test=eye_detection_haar_cascade(source,haarCascadeEyes);
+    //imshow("ochi detectati cu haar cascade",source_test);
 
 
     //detectia si corectia ochilor automata (programul meu)
@@ -78,34 +78,36 @@ int main() {
     vector<Rect> eyes = detectEyes(source, face);
     for (const Rect& eye : eyes) {
         rectangle(eyesRect, eye, Scalar(255, 0, 0), 2); // contur ochi
-        rectangle(image, eye, Scalar(255, 0, 0), 2); // contur ochi
-        rectangle(source_test, eye, Scalar(255, 0, 0), 2); // contur ochi
+        //rectangle(image, eye, Scalar(255, 0, 0), 2); // contur ochi
+      //  rectangle(source_test, eye, Scalar(255, 0, 0), 2); // contur ochi
 
     }
     imshow("Ochi detectati automat cu programul meu", eyesRect);
-    imshow("Selectie Manuala VS Selectie automata ", image);
-    imshow("Selectie HaarCascade VS Selectie automata ", source_test);
+  //  imshow("Selectie Manuala VS Selectie automata ", image);
+    //imshow("Selectie HaarCascade VS Selectie automata ", source_test);
 
 
+    //Mat source2=source.clone();
     fixRedEyes(source, eyes);
+    //fixRedEyes(source, haarCascadeEyes);
 
     //fixRedEyes(source,selectedEyes);
 
     imshow("Ochi corectati", source);
 
-    Mat correct_iphone = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\pozaCorectieOchiRosiiIphone-img1.jpg",
+    Mat correct_iphone = imread("C:\\Users\\anaho\\OneDrive - Technical University of Cluj-Napoca\\Documents\\PI\\Proiect\\RedEyeDetection\\images\\pozaCorectieOchiRosiiIphone-img5.jpg",
                         IMREAD_COLOR);
     imshow("Ochi corectati cu functia din iphone",correct_iphone);
 
 
 
-    cout<<"Comparatie detectie manuala vs detectie automata"<<endl;
-    verifyPositionDifference(selectedEyes,eyes);//iou(intersection over union) cu selectie manuala
+  //  cout<<"Comparatie detectie manuala vs detectie automata"<<endl;
+   // verifyPositionDifference(selectedEyes,eyes);//iou(intersection over union) cu selectie manuala
 
-    cout <<endl;
+  //  cout <<endl;
 
-   cout<<"Comparatie detectie haar cascade vs detectie automata"<<endl;
-    verifyPositionDifference(haarCascadeEyes,eyes);//iou(intersection over union) cu haar cascade
+  // cout<<"Comparatie detectie haar cascade vs detectie automata"<<endl;
+    //verifyPositionDifference(haarCascadeEyes,eyes);//iou(intersection over union) cu haar cascade
     verifyColorDifference(correct_iphone,source,eyes);//verificam
     //verifyColorDifference(correct_iphone,source,selectedEyes);
     //culoarea pixelilor corectati de programul meu si cei corectati de o functie de standard industrail(cea din iphone)

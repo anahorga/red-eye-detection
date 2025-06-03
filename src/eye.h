@@ -29,4 +29,5 @@ void fillHoles(Mat mask);
 void drawEyeCandidates(Mat image,  vector<Rect> candidates,  string windowName = "Eye Candidates");
 double verifyPositionDifference(vector<Rect>selectedEyes,vector<Rect>myEyes);
 void verifyColorDifference(Mat iphoneCorrect ,Mat myCorrect,vector<Rect>eyes);
+
 #endif //REDEYEDETECTION_EYE_H
